@@ -1,5 +1,9 @@
-const { build } = require('vite');
-const { resolve } = require('path');
+import { build } from 'vite';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function run() {
   console.log('Building lobby_action.js...');
@@ -35,7 +39,7 @@ async function run() {
       emptyOutDir: false // 成果物を上書き消去しないよう false にする
     }
   });
-  
+
   console.log('Build completed successfully!');
 }
 
