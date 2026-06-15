@@ -274,10 +274,15 @@
 
         const deckCount = record.Deck_Count && record.Deck_Count.value !== undefined ? record.Deck_Count.value : 0;
         
-        // ゲーム終了状態(-1)の判定
+        // ★修正: ゲーム終了状態(-1)の判定と、勝者の特定ロジックを追加
         let turnPlayerName = '';
+        let winnerName = '';
         if (currentTurnIndex === -1) {
             turnPlayerName = '🎊 ゲーム終了 🎊';
+            // 誰の手札が0枚になったかを判定して勝者を特定する
+            if (record.Player0_Hand && JSON.parse(record.Player0_Hand.value || '[]').length === 0) winnerName = players[0] ? players[0].name : 'Player 1';
+            else if (record.Player1_Hand && JSON.parse(record.Player1_Hand.value || '[]').length === 0) winnerName = players[1] ? players[1].name : 'Player 2';
+            else if (record.Player2_Hand && JSON.parse(record.Player2_Hand.value || '[]').length === 0) winnerName = players[2] ? players[2].name : 'Player 3';
         } else {
             turnPlayerName = players[currentTurnIndex] ? players[currentTurnIndex].name : `Player ${currentTurnIndex}`;
         }
@@ -324,10 +329,14 @@
             playerAreaHTML = `<div style="text-align:center; font-weight:bold; color:#f39c12;">あなたは観戦者です（手札はありません）</div>`;
         }
 
+        // ★修正: 勝者が決まっている場合は、大きく優勝者を讃えるHTMLを描画する
         let html = `
             <div style="text-align:center; margin-bottom: 20px;">
                 <h2>UNO Game Board</h2>
-                <p>現在のターン: <span style="color:#00ff7f; font-weight:bold;">${turnPlayerName}</span> / 山札残り: ${deckCount}枚 / ${directionText}</p>
+                ${currentTurnIndex === -1 
+                    ? `<h3 style="color:#f1c40f; font-size: 36px; text-shadow: 2px 2px 4px black; margin: 15px 0;">👑 優勝: ${winnerName} 👑</h3><p style="color:#bdc3c7;">ゲーム終了</p>`
+                    : `<p>現在のターン: <span style="color:#00ff7f; font-weight:bold;">${turnPlayerName}</span> / 山札残り: ${deckCount}枚 / ${directionText}</p>`
+                }
                 ${currentPenalty > 0 && currentTurnIndex !== -1 ? `<p style="color:#e74c3c; font-weight:bold; font-size:24px;">⚠️ ドロー累積: ${currentPenalty}枚！出せるカードがなければ引いてください</p>` : ''}
             </div>
             
