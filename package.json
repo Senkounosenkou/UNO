@@ -1,0 +1,25 @@
+{
+  "name": "uno",
+  "version": "1.0.0",
+  "main": "UNO.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Senkounosenkou/UNO.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Senkounosenkou/UNO/issues"
+  },
+  "homepage": "https://github.com/Senkounosenkou/UNO#readme",
+  "description": "",
+  "devDependencies": {
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}
