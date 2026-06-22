@@ -7,7 +7,7 @@ import { renderGameBoard, showColorSelector } from './view.js';
     kintone.events.on('app.record.detail.show', function(event) {
         const record = event.record;
         
-        // 没入感モード: スペース以外の裏側データ（フィールド）をすべて非表示にする
+        // 没入感モード
         const hideFields = [
             'GameID', 'Current_Card', 'Deck_Count', 'Turn_Index', 'Players', 
             'Deck_Data', 'Player0_Hand', 'Player1_Hand', 'Player2_Hand'
@@ -78,11 +78,34 @@ import { renderGameBoard, showColorSelector } from './view.js';
         let currentDirection = currentCard && currentCard.direction !== undefined ? currentCard.direction : 1;
         let currentPenalty = currentCard && currentCard.penalty !== undefined ? currentCard.penalty : 0; 
         
+        let unoCaller = currentCard && currentCard.unoCallTrigger ? currentCard.unoCallTrigger : null;
+        
         let myHandStr = '[]';
         if (myPlayerIndex === 0) myHandStr = record.Player0_Hand.value;
         if (myPlayerIndex === 1) myHandStr = record.Player1_Hand.value;
         if (myPlayerIndex === 2) myHandStr = record.Player2_Hand.value;
         const myHand = JSON.parse(myHandStr || '[]');
+
+        // ★ NEW: 他のプレイヤーの手札枚数を計算してまとめる
+        const player0Hand = JSON.parse(record.Player0_Hand && record.Player0_Hand.value ? record.Player0_Hand.value : '[]');
+        const player1Hand = JSON.parse(record.Player1_Hand && record.Player1_Hand.value ? record.Player1_Hand.value : '[]');
+        const player2Hand = JSON.parse(record.Player2_Hand && record.Player2_Hand.value ? record.Player2_Hand.value : '[]');
+
+        const opponents = [];
+        players.forEach(function(p, index) {
+            if (index !== myPlayerIndex) {
+                let handCount = 0;
+                if (index === 0) handCount = player0Hand.length;
+                if (index === 1) handCount = player1Hand.length;
+                if (index === 2) handCount = player2Hand.length;
+                
+                opponents.push({
+                    name: p.name,
+                    index: index,
+                    handCount: handCount
+                });
+            }
+        });
 
         const deckCount = record.Deck_Count && record.Deck_Count.value !== undefined ? record.Deck_Count.value : 0;
         
@@ -90,11 +113,17 @@ import { renderGameBoard, showColorSelector } from './view.js';
         let winnerName = '';
         if (currentTurnIndex === -1) {
             turnPlayerName = '🎊 ゲーム終了 🎊';
-            if (record.Player0_Hand && JSON.parse(record.Player0_Hand.value || '[]').length === 0) winnerName = players[0] ? players[0].name : 'Player 1';
-            else if (record.Player1_Hand && JSON.parse(record.Player1_Hand.value || '[]').length === 0) winnerName = players[1] ? players[1].name : 'Player 2';
-            else if (record.Player2_Hand && JSON.parse(record.Player2_Hand.value || '[]').length === 0) winnerName = players[2] ? players[2].name : 'Player 3';
+            if (player0Hand.length === 0) winnerName = players[0] ? players[0].name : 'Player 1';
+            else if (player1Hand.length === 0) winnerName = players[1] ? players[1].name : 'Player 2';
+            else if (player2Hand.length === 0) winnerName = players[2] ? players[2].name : 'Player 3';
         } else {
             turnPlayerName = players[currentTurnIndex] ? players[currentTurnIndex].name : `Player ${currentTurnIndex}`;
+        }
+
+        // ★ NEW: 手札が2枚のとき、出せるカードがあるか判定する
+        let hasPlayableCard = false;
+        if (myHand.length === 2 && myPlayerIndex === currentTurnIndex) {
+            hasPlayableCard = myHand.some(card => canPlayCard(card, currentCard, currentPenalty));
         }
 
         const container = renderGameBoard(spaceEl, {
@@ -107,11 +136,16 @@ import { renderGameBoard, showColorSelector } from './view.js';
             currentTurnIndex,
             currentDirection,
             currentPenalty,
-            winnerName
+            winnerName,
+            unoCaller,
+            opponents, // ★ NEW: 計算した対戦相手の情報をUI描画関数へ渡す
+            hasPlayableCard // ★ NEW: 出せるカードがあるかどうかのフラグを渡す
         });
 
         // --- C. ゲーム操作ロジック ---
         if (myPlayerIndex !== -1 && currentTurnIndex !== -1) {
+            
+            let hasCalledUno = false;
             
             function saveGameData(updateRecord) {
                 const updateParams = {
@@ -135,6 +169,24 @@ import { renderGameBoard, showColorSelector } from './view.js';
             
             function executePlayCard(originalCard, cardToPutOnField) {
                 const newHand = myHand.filter(c => c.id !== originalCard.id);
+                
+                let deck = JSON.parse(record.Deck_Data.value || '[]');
+                let penaltyApplied = false;
+
+                if (myHand.length === 2 && newHand.length === 1 && !hasCalledUno) {
+                    alert('🚨 UNOと宣言せずに残り1枚になりました！ペナルティとして山札から2枚引かされます。');
+                    for (let i = 0; i < 2; i++) {
+                        if (deck.length > 0) newHand.push(deck.pop());
+                    }
+                    penaltyApplied = true;
+                    delete cardToPutOnField.unoCallTrigger; 
+                } 
+                else if (myHand.length === 2 && newHand.length === 1 && hasCalledUno) {
+                    cardToPutOnField.unoCallTrigger = myPlayerName;
+                } 
+                else {
+                    delete cardToPutOnField.unoCallTrigger;
+                }
                 
                 let nextTurnIndex = currentTurnIndex;
 
@@ -164,6 +216,11 @@ import { renderGameBoard, showColorSelector } from './view.js';
                     Current_Card: { value: JSON.stringify(cardToPutOnField) },
                     Turn_Index: { value: nextTurnIndex }
                 };
+
+                if (penaltyApplied) {
+                    updateRecord.Deck_Data = { value: JSON.stringify(deck) };
+                    updateRecord.Deck_Count = { value: deck.length };
+                }
 
                 setHandToUpdateRecord(updateRecord, myPlayerIndex, newHand);
                 saveGameData(updateRecord);
@@ -207,24 +264,17 @@ import { renderGameBoard, showColorSelector } from './view.js';
                         return;
                     }
 
-                    // ペナルティ中の場合
                     if (currentPenalty > 0) {
                         if (confirm(`重ねて出せるカードがありませんか？\nペナルティとして ${currentPenalty} 枚引いてターンを終了します。`)) {
                             let deck = JSON.parse(record.Deck_Data.value || '[]');
-                            
                             for (let i = 0; i < currentPenalty; i++) {
-                                if (deck.length > 0) {
-                                    myHand.push(deck.pop());
-                                } else {
-                                    alert('山札が尽きました！');
-                                    break;
-                                }
+                                if (deck.length > 0) myHand.push(deck.pop());
                             }
 
                             const nextTurn = (currentTurnIndex + currentDirection + 3) % 3;
-                            
                             const resetCard = Object.assign({}, currentCard);
                             resetCard.penalty = 0;
+                            delete resetCard.unoCallTrigger;
 
                             const updateRecord = {
                                 Current_Card: { value: JSON.stringify(resetCard) },
@@ -239,7 +289,6 @@ import { renderGameBoard, showColorSelector } from './view.js';
                         return; 
                     }
 
-                    // 通常のドロー処理
                     let deck = JSON.parse(record.Deck_Data.value || '[]');
                     if (deck.length === 0) {
                         alert('山札がありません！');
@@ -287,6 +336,7 @@ import { renderGameBoard, showColorSelector } from './view.js';
                                     playedCard.color = selectedColor; 
                                     playedCard.direction = nextDirection;
                                     playedCard.penalty = nextPenalty;
+                                    delete playedCard.unoCallTrigger; 
 
                                     updateRecord.Current_Card = { value: JSON.stringify(playedCard) };
                                     setHandToUpdateRecord(updateRecord, myPlayerIndex, myHand); 
@@ -296,6 +346,7 @@ import { renderGameBoard, showColorSelector } from './view.js';
                             } else {
                                 drawCard.direction = nextDirection;
                                 drawCard.penalty = nextPenalty;
+                                delete drawCard.unoCallTrigger;
 
                                 updateRecord.Current_Card = { value: JSON.stringify(drawCard) };
                                 setHandToUpdateRecord(updateRecord, myPlayerIndex, myHand); 
@@ -309,14 +360,28 @@ import { renderGameBoard, showColorSelector } from './view.js';
 
                     myHand.push(drawCard);
                     setHandToUpdateRecord(updateRecord, myPlayerIndex, myHand);
+                    
+                    const currentCardObj = JSON.parse(record.Current_Card.value || '{}');
+                    if(currentCardObj.unoCallTrigger) {
+                        delete currentCardObj.unoCallTrigger;
+                        updateRecord.Current_Card = { value: JSON.stringify(currentCardObj) };
+                    }
                     saveGameData(updateRecord);
+                });
+            }
+
+            const unoBtn = document.getElementById('uno-call-btn');
+            if (unoBtn) {
+                unoBtn.addEventListener('click', function() {
+                    hasCalledUno = true;
+                    unoBtn.innerText = '✅ UNO宣言済み！';
+                    unoBtn.style.backgroundColor = '#2ecc71';
+                    unoBtn.disabled = true; 
                 });
             }
         }
 
-        // --- D. 盤面の自動更新（ポーリング）ロジック ---
         const currentRevision = record['$revision'].value;
-        
         if (window.unoPollingTimer) {
             clearInterval(window.unoPollingTimer);
         }
@@ -331,9 +396,7 @@ import { renderGameBoard, showColorSelector } from './view.js';
                     console.log("他プレイヤーの操作を検知しました！画面を更新します。");
                     location.reload();
                 }
-            }).catch(function(err) {
-                // エラー時無視
-            });
+            }).catch(function(err) {});
         }, 3000);
 
         return event;
