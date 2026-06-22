@@ -212,6 +212,10 @@ import { renderGameBoard, showColorSelector } from './view.js';
                     nextTurnIndex = (currentTurnIndex + (nextDirection * skipCount) + 3) % 3;
                 }
 
+                // ★ NEW: エフェクト再生用のメタデータを付与
+                cardToPutOnField.playedAt = Date.now();
+                cardToPutOnField.playedBy = myPlayerName;
+
                 const updateRecord = {
                     Current_Card: { value: JSON.stringify(cardToPutOnField) },
                     Turn_Index: { value: nextTurnIndex }
@@ -336,6 +340,9 @@ import { renderGameBoard, showColorSelector } from './view.js';
                                     playedCard.color = selectedColor; 
                                     playedCard.direction = nextDirection;
                                     playedCard.penalty = nextPenalty;
+                                    // ★ NEW: エフェクト再生用のメタデータを付与
+                                    playedCard.playedAt = Date.now();
+                                    playedCard.playedBy = myPlayerName;
                                     delete playedCard.unoCallTrigger; 
 
                                     updateRecord.Current_Card = { value: JSON.stringify(playedCard) };
@@ -346,6 +353,9 @@ import { renderGameBoard, showColorSelector } from './view.js';
                             } else {
                                 drawCard.direction = nextDirection;
                                 drawCard.penalty = nextPenalty;
+                                // ★ NEW: エフェクト再生用のメタデータを付与
+                                drawCard.playedAt = Date.now();
+                                drawCard.playedBy = myPlayerName;
                                 delete drawCard.unoCallTrigger;
 
                                 updateRecord.Current_Card = { value: JSON.stringify(drawCard) };

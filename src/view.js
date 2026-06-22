@@ -77,6 +77,150 @@ export function injectStyles() {
         .animate-drop { animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .danger-text { animation: shakeAndScale 1.5s infinite; font-size: 28px !important; text-shadow: 0 0 10px rgba(255,71,87,0.5); margin: 15px 0; display: inline-block; }
         .btn-danger-pulse { animation: pulseDanger 1.5s infinite; }
+
+        /* --- 記号カード用エフェクトスタイル --- */
+        .uno-effect-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.75); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            pointer-events: none; opacity: 0;
+            animation: effectFadeInOut 2.5s forwards;
+            box-sizing: border-box;
+        }
+        @keyframes effectFadeInOut {
+            0% { opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .uno-effect-title {
+            font-size: 5rem; font-weight: 900; font-style: italic; margin: 20px 0 10px 0;
+            text-shadow: 0 0 20px rgba(255,255,255,0.8), 4px 4px 0px rgba(0,0,0,0.5);
+            transform: scale(0.5);
+            animation: effectPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .uno-effect-subtitle {
+            font-size: 1.8rem; color: #ecf0f1; margin: 0; font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            opacity: 0;
+            animation: fadeIn 0.5s 0.3s forwards;
+            text-align: center;
+            padding: 0 20px;
+        }
+        @keyframes effectPopIn {
+            to { transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* 1. Skip: 禁止マーク */
+        .skip-icon {
+            font-size: 8rem; color: #e74c3c;
+            filter: drop-shadow(0 0 15px #e74c3c);
+            animation: skipSpin 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes skipSpin {
+            0% { transform: scale(0) rotate(-180deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        /* 2. Reverse: 矢印回転 */
+        .reverse-icon-container {
+            position: relative; width: 150px; height: 150px;
+        }
+        .reverse-icon {
+            font-size: 8rem; color: #3498db;
+            filter: drop-shadow(0 0 15px #3498db);
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: reverseSpin 2s linear infinite;
+        }
+        .reverse-icon.ccw {
+            animation: reverseSpinCCW 2s linear infinite;
+        }
+        @keyframes reverseSpin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes reverseSpinCCW {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+
+        /* 3. Draw 2: +2 */
+        .draw-icon {
+            font-size: 8rem; font-weight: 900; color: #f1c40f;
+            filter: drop-shadow(0 0 20px #f1c40f);
+            animation: drawPulse 0.5s ease-in-out alternate infinite;
+        }
+        @keyframes drawPulse {
+            0% { transform: scale(0.9); }
+            100% { transform: scale(1.1); }
+        }
+
+        /* 飛び交うカード */
+        .flying-card {
+            position: absolute; width: 40px; height: 60px;
+            border: 2px solid white; border-radius: 4px;
+            background-color: #f1c40f; opacity: 0;
+            left: calc(50% - 20px); top: calc(50% - 30px);
+        }
+        .flying-card:nth-child(1) { animation: flyCard1 1.5s ease-out infinite; }
+        .flying-card:nth-child(2) { animation: flyCard2 1.5s 0.2s ease-out infinite; }
+        .flying-card:nth-child(3) { animation: flyCard3 1.5s 0.4s ease-out infinite; }
+        .flying-card:nth-child(4) { animation: flyCard4 1.5s 0.6s ease-out infinite; }
+        @keyframes flyCard1 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(-120px, -80px) rotate(-45deg) scale(1); opacity: 0; }
+        }
+        @keyframes flyCard2 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(120px, -80px) rotate(45deg) scale(1); opacity: 0; }
+        }
+        @keyframes flyCard3 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(-80px, 120px) rotate(-15deg) scale(1); opacity: 0; }
+        }
+        @keyframes flyCard4 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translate(80px, 120px) rotate(15deg) scale(1); opacity: 0; }
+        }
+
+        /* 4. Wild: 火花 */
+        .wild-spark {
+            position: absolute; width: 8px; height: 8px; border-radius: 50%; opacity: 0;
+        }
+        .wild-spark.red { background-color: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+        .wild-spark.blue { background-color: #3498db; box-shadow: 0 0 8px #3498db; }
+        .wild-spark.green { background-color: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+        .wild-spark.yellow { background-color: #f1c40f; box-shadow: 0 0 8px #f1c40f; }
+
+        .wild-spark:nth-child(odd) { animation: sparkExplode1 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite; }
+        .wild-spark:nth-child(even) { animation: sparkExplode2 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite; }
+
+        @keyframes sparkExplode1 {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        @keyframes sparkExplode2 {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        /* 画面シェイク */
+        .screen-shake-effect {
+            animation: screenShake 0.4s ease-in-out 3;
+        }
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-6px, -6px); }
+            20%, 40%, 60%, 80% { transform: translate(6px, 6px); }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -292,5 +436,135 @@ export function renderGameBoard(spaceEl, {
         }, 3000);
     }
 
+    // ★ NEW: 記号カードのアニメーションエフェクト判定
+    if (currentCard && currentCard.playedAt) {
+        const lastPlayedKey = 'uno_last_played_at';
+        const lastPlayedAt = localStorage.getItem(lastPlayedKey);
+        
+        if (!lastPlayedAt || Number(currentCard.playedAt) > Number(lastPlayedAt)) {
+            if (Date.now() - Number(currentCard.playedAt) < 15000) {
+                triggerSpecialCardEffect(currentCard, container);
+            }
+            localStorage.setItem(lastPlayedKey, currentCard.playedAt);
+        }
+    }
+
     return container;
+}
+
+// ★ NEW: 記号カードを出したときのエフェクト再生ロジック
+function triggerSpecialCardEffect(card, container) {
+    if (!card || card.type === 'number') return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'uno-effect-overlay';
+
+    let contentHTML = '';
+    let playedByName = card.playedBy || '誰か';
+    let cardColorName = '';
+    switch(card.color) {
+        case 'red': cardColorName = '赤'; break;
+        case 'blue': cardColorName = '青'; break;
+        case 'green': cardColorName = '緑'; break;
+        case 'yellow': cardColorName = '黄'; break;
+        default: cardColorName = 'カラー選択';
+    }
+
+    if (card.type === 'skip') {
+        overlay.style.border = '10px solid #e74c3c';
+        contentHTML = `
+            <div class="skip-icon">⊘</div>
+            <h1 class="uno-effect-title" style="color: #e74c3c;">SKIP!!</h1>
+            <p class="uno-effect-subtitle">${playedByName} がスキップを発動！次の人の手番はスキップされます</p>
+        `;
+    } else if (card.type === 'reverse') {
+        const isCCW = card.direction === -1;
+        const arrowDirectionText = isCCW ? '反時計回り (左回り)' : '時計回り (右回り)';
+        overlay.style.border = '10px solid #3498db';
+        contentHTML = `
+            <div class="reverse-icon-container">
+                <div class="reverse-icon ${isCCW ? 'ccw' : ''}">🔄</div>
+            </div>
+            <h1 class="uno-effect-title" style="color: #3498db;">REVERSE!!</h1>
+            <p class="uno-effect-subtitle">手番の順序が逆転！ ${arrowDirectionText} になりました</p>
+        `;
+    } else if (card.type === 'draw2') {
+        overlay.style.border = '10px solid #f1c40f';
+        let cardsHTML = '';
+        for (let i = 0; i < 4; i++) {
+            cardsHTML += `<div class="flying-card"></div>`;
+        }
+        contentHTML = `
+            <div style="position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center;">
+                <div class="draw-icon">+2</div>
+                ${cardsHTML}
+            </div>
+            <h1 class="uno-effect-title" style="color: #f1c40f;">DRAW 2!!</h1>
+            <p class="uno-effect-subtitle">${playedByName} がドロー2！次の人は2枚引くか、ドローカードを重ねてください</p>
+        `;
+    } else if (card.type === 'wild') {
+        overlay.style.border = '10px solid #9b59b6';
+        let sparksHTML = '';
+        const colors = ['red', 'blue', 'green', 'yellow'];
+        for (let i = 0; i < 20; i++) {
+            const color = colors[i % 4];
+            const angle = (i / 20) * 2 * Math.PI;
+            const distance = 100 + Math.random() * 100;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            sparksHTML += `<div class="wild-spark ${color}" style="--tx: ${tx}px; --ty: ${ty}px; left: calc(50% - 4px); top: calc(50% - 4px); animation-delay: ${Math.random() * 0.3}s;"></div>`;
+        }
+        contentHTML = `
+            <div style="position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center;">
+                <div class="draw-icon" style="color: #9b59b6; filter: drop-shadow(0 0 20px #9b59b6);">W</div>
+                ${sparksHTML}
+            </div>
+            <h1 class="uno-effect-title" style="color: #f1c40f; text-shadow: 0 0 20px #9b59b6, 3px 3px 0px black;">WILD!!</h1>
+            <p class="uno-effect-subtitle">指定された色は 「${cardColorName}」 です！</p>
+        `;
+    } else if (card.type === 'wild_draw4') {
+        overlay.style.border = '10px solid #e67e22';
+        
+        if (container) {
+            container.classList.add('screen-shake-effect');
+            setTimeout(() => {
+                container.classList.remove('screen-shake-effect');
+            }, 1200);
+        }
+
+        let sparksHTML = '';
+        const colors = ['red', 'blue', 'green', 'yellow'];
+        for (let i = 0; i < 24; i++) {
+            const color = colors[i % 4];
+            const angle = (i / 24) * 2 * Math.PI;
+            const distance = 120 + Math.random() * 120;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            sparksHTML += `<div class="wild-spark ${color}" style="--tx: ${tx}px; --ty: ${ty}px; left: calc(50% - 4px); top: calc(50% - 4px); animation-delay: ${Math.random() * 0.2}s;"></div>`;
+        }
+
+        let cardsHTML = '';
+        for (let i = 0; i < 4; i++) {
+            cardsHTML += `<div class="flying-card" style="background-color: #e67e22;"></div>`;
+        }
+
+        contentHTML = `
+            <div style="position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center;">
+                <div class="draw-icon" style="color: #e67e22; filter: drop-shadow(0 0 30px #e67e22); font-size: 7rem;">+4</div>
+                ${sparksHTML}
+                ${cardsHTML}
+            </div>
+            <h1 class="uno-effect-title" style="color: #e74c3c; text-shadow: 0 0 25px #e67e22, 4px 4px 0px black; font-size: 6rem;">WILD DRAW 4!!!</h1>
+            <p class="uno-effect-subtitle">${playedByName} がワイルドドロー4を発動！色は「${cardColorName}」になり、次の人は4枚引きます！</p>
+        `;
+    }
+
+    overlay.innerHTML = contentHTML;
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    }, 2500);
 }
