@@ -221,6 +221,148 @@ export function injectStyles() {
             10%, 30%, 50%, 70%, 90% { transform: translate(-6px, -6px); }
             20%, 40%, 60%, 80% { transform: translate(6px, 6px); }
         }
+
+        /* ===== 勝利演出スタイル ===== */
+        .victory-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 20000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.92) 100%);
+            opacity: 0; animation: victoryFadeIn 0.8s ease-out forwards;
+            overflow: hidden;
+        }
+        @keyframes victoryFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .victory-overlay.fade-out {
+            animation: victoryFadeOut 1.5s ease-in forwards;
+        }
+        @keyframes victoryFadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* 光のリング拡散 */
+        .victory-ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 4px solid rgba(255, 215, 0, 0.8);
+            transform: translate(-50%, -50%) scale(0);
+            animation: ringExpand 2s ease-out forwards;
+            pointer-events: none;
+        }
+        .victory-ring:nth-child(2) { animation-delay: 0.3s; border-color: rgba(255, 165, 0, 0.6); border-width: 3px; }
+        .victory-ring:nth-child(3) { animation-delay: 0.6s; border-color: rgba(255, 215, 0, 0.4); border-width: 2px; }
+        .victory-ring:nth-child(4) { animation-delay: 0.9s; border-color: rgba(255, 255, 255, 0.3); border-width: 2px; }
+        @keyframes ringExpand {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(80); opacity: 0; }
+        }
+
+        /* トロフィーアイコン */
+        .victory-trophy {
+            font-size: 10rem; filter: drop-shadow(0 0 40px rgba(255,215,0,0.9));
+            animation: trophyEntrance 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+                       trophyGlow 2s 1s ease-in-out infinite alternate;
+            transform: scale(0) rotate(-30deg); opacity: 0;
+            z-index: 2;
+        }
+        @keyframes trophyEntrance {
+            0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+            60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes trophyGlow {
+            0% { filter: drop-shadow(0 0 40px rgba(255,215,0,0.9)) drop-shadow(0 0 80px rgba(255,165,0,0.4)); }
+            100% { filter: drop-shadow(0 0 60px rgba(255,215,0,1)) drop-shadow(0 0 120px rgba(255,165,0,0.7)); }
+        }
+
+        /* 勝者名 */
+        .victory-winner-name {
+            font-size: 4rem; font-weight: 900; font-style: italic;
+            background: linear-gradient(135deg, #ffd700, #ffaa00, #fff5cc, #ffd700);
+            background-size: 300% 300%;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: victoryTextEntrance 0.8s 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+                       goldShimmer 3s 1.3s linear infinite;
+            transform: translateY(40px) scale(0.5); opacity: 0;
+            text-shadow: none; z-index: 2; margin: 15px 0 5px 0;
+            text-align: center;
+        }
+        @keyframes victoryTextEntrance {
+            0% { transform: translateY(40px) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes goldShimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 「WINNER」テキスト */
+        .victory-label {
+            font-size: 1.8rem; font-weight: 700;
+            color: #ecf0f1; letter-spacing: 0.5em;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            animation: victoryTextEntrance 0.8s 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: translateY(40px) scale(0.5); opacity: 0;
+            z-index: 2; margin: 0;
+        }
+
+        /* 紙吹雪 */
+        .confetti {
+            position: absolute; width: 10px; height: 10px;
+            top: -20px; opacity: 0; z-index: 1;
+            animation: confettiFall linear forwards;
+        }
+        .confetti.rect { border-radius: 2px; }
+        .confetti.circle { border-radius: 50%; }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+            25% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(110vh) rotate(var(--confetti-rot, 720deg)) scale(0.5); }
+        }
+
+        /* 花火パーティクル */
+        .firework-particle {
+            position: absolute; width: 5px; height: 5px;
+            border-radius: 50%; opacity: 0; z-index: 1;
+            animation: fireworkExplode 1.2s ease-out forwards;
+        }
+        @keyframes fireworkExplode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            30% { opacity: 1; }
+            100% { transform: translate(var(--fw-tx), var(--fw-ty)) scale(0); opacity: 0; }
+        }
+
+        /* 閉じるボタン */
+        .victory-close-btn {
+            margin-top: 30px; padding: 14px 50px;
+            font-size: 1.2rem; font-weight: bold;
+            background: linear-gradient(135deg, #ffd700, #e6a800);
+            color: #333; border: none; border-radius: 50px;
+            cursor: pointer; z-index: 2;
+            box-shadow: 0 4px 15px rgba(255,215,0,0.5);
+            animation: victoryTextEntrance 0.8s 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: translateY(40px) scale(0.5); opacity: 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .victory-close-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(255,215,0,0.7);
+        }
+
+        /* スター散布 */
+        .victory-star {
+            position: absolute; font-size: 1.5rem; opacity: 0; z-index: 1;
+            animation: starTwinkle 2s ease-in-out infinite alternate;
+        }
+        @keyframes starTwinkle {
+            0% { opacity: 0.2; transform: scale(0.8) rotate(0deg); }
+            100% { opacity: 1; transform: scale(1.2) rotate(20deg); }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -402,7 +544,7 @@ export function renderGameBoard(spaceEl, {
         <div style="text-align:center; margin-bottom: 20px;">
             <h2>UNO Game Board</h2>
             ${currentTurnIndex === -1 
-                ? `<h3 style="color:#f1c40f; font-size: 36px; text-shadow: 2px 2px 4px black; margin: 15px 0;">👑 優勝: ${winnerName} 👑</h3><p style="color:#bdc3c7;">ゲーム終了</p>`
+                ? `<h3 style="color:#f1c40f; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.8), 2px 2px 4px black; margin: 15px 0; animation: trophyGlow 2s ease-in-out infinite alternate;">🏆👑 優勝: ${winnerName} 👑🏆</h3><p style="color:#bdc3c7; font-size: 18px;">🎊 ゲーム終了 — お見事でした！ 🎊</p>`
                 : `<p>現在のターン: <span style="color:#00ff7f; font-weight:bold;">${turnPlayerName}</span> / 山札残り: ${deckCount}枚 / ${directionText}</p>`
             }
             ${currentPenalty > 0 && currentTurnIndex !== -1 ? `<p class="danger-text" style="color:#e74c3c; font-weight:bold;">⚠️ ドロー累積: ${currentPenalty}枚！出せるカードがなければ引いてください</p>` : ''}
@@ -436,8 +578,8 @@ export function renderGameBoard(spaceEl, {
         }, 3000);
     }
 
-    // ★ NEW: 記号カードのアニメーションエフェクト判定
-    if (currentCard && currentCard.playedAt) {
+    // ★ NEW: 記号カードのアニメーションエフェクト判定（ゲーム終了時は勝利演出を優先するためスキップ）
+    if (currentCard && currentCard.playedAt && currentTurnIndex !== -1) {
         const lastPlayedKey = 'uno_last_played_at';
         const lastPlayedAt = localStorage.getItem(lastPlayedKey);
         
@@ -567,4 +709,128 @@ function triggerSpecialCardEffect(card, container) {
             overlay.parentNode.removeChild(overlay);
         }
     }, 2500);
+}
+
+// ★ NEW: 勝利演出エフェクト
+export function triggerVictoryEffect(winnerName) {
+    // 既存の勝利オーバーレイがあれば除去
+    const existing = document.querySelector('.victory-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'victory-overlay';
+
+    // 光のリング
+    for (let i = 0; i < 4; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'victory-ring';
+        overlay.appendChild(ring);
+    }
+
+    // 星を散りばめる
+    for (let i = 0; i < 20; i++) {
+        const star = document.createElement('div');
+        star.className = 'victory-star';
+        star.textContent = '✦';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = (Math.random() * 2) + 's';
+        star.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+        star.style.color = ['#ffd700', '#ffaa00', '#fff5cc', '#ffffff'][Math.floor(Math.random() * 4)];
+        overlay.appendChild(star);
+    }
+
+    // メインコンテンツ
+    const content = document.createElement('div');
+    content.style.cssText = 'display:flex;flex-direction:column;align-items:center;z-index:2;position:relative;';
+    content.innerHTML = `
+        <div class="victory-trophy">🏆</div>
+        <div class="victory-winner-name">${winnerName}</div>
+        <p class="victory-label">W I N N E R</p>
+        <button class="victory-close-btn">🎮 結果を確認する</button>
+    `;
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // 紙吹雪を生成
+    const confettiColors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#ffd700', '#ff69b4'];
+    function spawnConfettiBurst() {
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                if (!overlay.parentNode) return;
+                const c = document.createElement('div');
+                c.className = 'confetti ' + (Math.random() > 0.5 ? 'rect' : 'circle');
+                c.style.left = Math.random() * 100 + '%';
+                c.style.width = (6 + Math.random() * 10) + 'px';
+                c.style.height = (6 + Math.random() * 10) + 'px';
+                c.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                c.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+                c.style.setProperty('--confetti-rot', (360 + Math.random() * 720) + 'deg');
+                overlay.appendChild(c);
+                setTimeout(() => { if (c.parentNode) c.remove(); }, 5000);
+            }, i * 50);
+        }
+    }
+
+    // 花火を生成
+    function spawnFirework(x, y) {
+        if (!overlay.parentNode) return;
+        const colors = ['#ff0', '#f00', '#0ff', '#f0f', '#0f0', '#ffd700', '#ff69b4'];
+        const mainColor = colors[Math.floor(Math.random() * colors.length)];
+        const particleCount = 24 + Math.floor(Math.random() * 12);
+        for (let i = 0; i < particleCount; i++) {
+            const p = document.createElement('div');
+            p.className = 'firework-particle';
+            p.style.left = x + '%';
+            p.style.top = y + '%';
+            const angle = (i / particleCount) * 2 * Math.PI;
+            const dist = 60 + Math.random() * 100;
+            p.style.setProperty('--fw-tx', (Math.cos(angle) * dist) + 'px');
+            p.style.setProperty('--fw-ty', (Math.sin(angle) * dist) + 'px');
+            p.style.backgroundColor = mainColor;
+            p.style.boxShadow = `0 0 6px ${mainColor}, 0 0 12px ${mainColor}`;
+            p.style.animationDelay = (Math.random() * 0.15) + 's';
+            p.style.width = (3 + Math.random() * 4) + 'px';
+            p.style.height = p.style.width;
+            overlay.appendChild(p);
+            setTimeout(() => { if (p.parentNode) p.remove(); }, 1500);
+        }
+    }
+
+    // 初期花火バースト
+    setTimeout(() => {
+        spawnConfettiBurst();
+        spawnFirework(50, 40);
+    }, 300);
+    setTimeout(() => spawnFirework(25, 30), 700);
+    setTimeout(() => spawnFirework(75, 35), 1000);
+    setTimeout(() => spawnConfettiBurst(), 1500);
+    setTimeout(() => spawnFirework(35, 50), 1800);
+    setTimeout(() => spawnFirework(65, 25), 2200);
+    setTimeout(() => spawnConfettiBurst(), 3000);
+    setTimeout(() => spawnFirework(20, 45), 3500);
+    setTimeout(() => spawnFirework(80, 40), 4000);
+
+    // 周期的に花火と紙吹雪を繰り返す
+    const fireworkInterval = setInterval(() => {
+        if (!overlay.parentNode) { clearInterval(fireworkInterval); return; }
+        spawnFirework(15 + Math.random() * 70, 20 + Math.random() * 40);
+    }, 1200);
+    const confettiInterval = setInterval(() => {
+        if (!overlay.parentNode) { clearInterval(confettiInterval); return; }
+        spawnConfettiBurst();
+    }, 3500);
+
+    // 閉じるボタン
+    const closeBtn = overlay.querySelector('.victory-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            clearInterval(fireworkInterval);
+            clearInterval(confettiInterval);
+            overlay.classList.add('fade-out');
+            setTimeout(() => {
+                if (overlay.parentNode) overlay.remove();
+            }, 1500);
+        });
+    }
 }
