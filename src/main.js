@@ -1,5 +1,5 @@
 import { createDeck, shuffleDeck, canPlayCard, getCardName } from './model.js';
-import { renderGameBoard, showColorSelector } from './view.js';
+import { renderGameBoard, showColorSelector, triggerVictoryEffect } from './view.js';
 
 (function() {
     'use strict';
@@ -120,6 +120,20 @@ import { renderGameBoard, showColorSelector } from './view.js';
             turnPlayerName = players[currentTurnIndex] ? players[currentTurnIndex].name : `Player ${currentTurnIndex}`;
         }
 
+        // ★ ゲーム終了時の勝利演出（最後のカードのplayedAtで判定）
+        if (currentTurnIndex === -1 && winnerName && currentCard && currentCard.playedAt) {
+            const victoryShownKey = 'uno_victory_shown_at';
+            const lastVictoryAt = localStorage.getItem(victoryShownKey);
+            const cardPlayedAt = Number(currentCard.playedAt);
+
+            if ((!lastVictoryAt || cardPlayedAt > Number(lastVictoryAt)) && (Date.now() - cardPlayedAt < 15000)) {
+                localStorage.setItem(victoryShownKey, cardPlayedAt);
+                setTimeout(() => {
+                    triggerVictoryEffect(winnerName);
+                }, 500);
+            }
+        }
+
         // ★ NEW: 手札が2枚のとき、出せるカードがあるか判定する
         let hasPlayableCard = false;
         if (myHand.length === 2 && myPlayerIndex === currentTurnIndex) {
@@ -191,7 +205,6 @@ import { renderGameBoard, showColorSelector } from './view.js';
                 let nextTurnIndex = currentTurnIndex;
 
                 if (newHand.length === 0) {
-                    alert(`🎉 おめでとうございます！\n${myPlayerName} が手札をすべて出し切って勝利しました！`);
                     nextTurnIndex = -1; 
                 } else {
                     let nextDirection = currentDirection;
@@ -328,7 +341,6 @@ import { renderGameBoard, showColorSelector } from './view.js';
                             const actualNextTurn = (currentTurnIndex + (nextDirection * skipCount) + 3) % 3;
                             
                             if (myHand.length === 0) {
-                                alert(`🎉 おめでとうございます！\n${myPlayerName} が引いたカードを出して手札をすべて出し切り、勝利しました！`);
                                 updateRecord.Turn_Index = { value: -1 };
                             } else {
                                 updateRecord.Turn_Index = { value: actualNextTurn };
