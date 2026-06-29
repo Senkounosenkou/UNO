@@ -1,6 +1,6 @@
 /**
- * UNO Game Lobby - 参加ボタン実装ロジック
- * レコード詳細画面に「参加する」ボタンを設置し、自分をプレイヤーに追加する
+ * UNO Game Lobby - 参加/退出 & ゲーム開始制御ロジック (何人でも対応版)
+ * 盤面(Board)アプリと連携し、不整合を防ぎながら動的にゲームを開始します。
  */
 
 (function() {
@@ -8,76 +8,60 @@
 
     const BOARD_APP_ID = 12023; // ★盤面(Board)アプリのアプリID
 
-    // レコード詳細画面が表示されたときに実行
     kintone.events.on('app.record.detail.show', function(event) {
         const record = event.record;
         
-        // フィールドコードが設定と合っているか確認してください
-        const status = record.Status && record.Status.value ? record.Status.value : 'Waiting'; // 初期値未設定でもWaitingとして扱う
+        const status = record.Status && record.Status.value ? record.Status.value : 'Waiting';
         const players = record.Players && record.Players.value ? record.Players.value : [];
-        const gameId = record.GameID && record.GameID.value ? record.GameID.value : ''; // ★追加: 現在のGameIDを取得
+        const gameId = record.GameID && record.GameID.value ? record.GameID.value : '';
         const loginUser = kintone.getLoginUser();
 
-        // 1. すでに3人揃っている、またはプレイ中以降ならボタンを出さない
-        if (players.length >= 3 || (status !== 'Waiting' && status !== '')) {
+        // 既にプレイ中、または終了している場合はボタンを表示しない
+        if (status !== 'Waiting' && status !== '') {
             return event;
         }
 
-        // 2. 自分がすでに参加済みかチェック
-        const isAlreadyJoined = players.some(function(player) {
-            return player.code === loginUser.code;
-        });
-
-        if (isAlreadyJoined) {
-            // すでに参加している場合は何もしない（ボタンを出さない）
-            return event; 
-        }
-
-        // 3. メニュースペースに「参加する」ボタンを生成
+        // メニュースペースの取得と重複生成防止
         const spaceElement = kintone.app.record.getHeaderMenuSpaceElement();
-        if (document.getElementById('join-game-btn') !== null) {
-            return; // 重複生成の防止
+        if (!spaceElement || document.getElementById('uno-lobby-actions') !== null) {
+            return event;
         }
 
-        const joinButton = document.createElement('button');
-        joinButton.id = 'join-game-btn';
-        joinButton.innerHTML = '🎮 このゲームに参加する';
-        joinButton.style.padding = '10px 20px';
-        joinButton.style.backgroundColor = '#3498db';
-        joinButton.style.color = '#fff';
-        joinButton.style.border = 'none';
-        joinButton.style.borderRadius = '5px';
-        joinButton.style.fontWeight = 'bold';
-        joinButton.style.cursor = 'pointer';
-        joinButton.style.margin = '10px';
+        // アクションボタンを配置するコンテナ
+        const btnContainer = document.createElement('div');
+        btnContainer.id = 'uno-lobby-actions';
+        btnContainer.style.display = 'inline-block';
+        btnContainer.style.margin = '10px';
+        spaceElement.appendChild(btnContainer);
 
-        spaceElement.appendChild(joinButton);
+        // 自分がすでに参加済みかチェック
+        const isAlreadyJoined = players.some(p => p.code === loginUser.code);
 
-        // 4. ボタンクリック時の処理（REST APIでレコード更新）
-        joinButton.addEventListener('click', function() {
-            if (!gameId) {
-                alert('GameIDが設定されていません。レコードを編集してGameIDを入力してください。');
-                return;
-            }
+        // 1. 【参加する】ボタンの表示条件
+        if (!isAlreadyJoined) {
+            const joinButton = document.createElement('button');
+            joinButton.innerText = '🎮 このゲームに参加する';
+            joinButton.style.padding = '10px 20px';
+            joinButton.style.backgroundColor = '#3498db';
+            joinButton.style.color = '#fff';
+            joinButton.style.border = 'none';
+            joinButton.style.borderRadius = '5px';
+            joinButton.style.fontWeight = 'bold';
+            joinButton.style.cursor = 'pointer';
+            joinButton.style.marginRight = '10px';
 
-            joinButton.innerText = '参加処理中...';
-            joinButton.disabled = true;
+            joinButton.addEventListener('click', function() {
+                if (!gameId) {
+                    alert('GameIDが設定されていません。レコードを編集してGameIDを入力してください。');
+                    return;
+                }
+                joinButton.innerText = '参加処理中...';
+                joinButton.disabled = true;
 
-            // 新しいプレイヤーリストを作成（既存の参加者 + 自分）
-            const newPlayers = players.map(function(p) {
-                return { code: p.code }; 
-            });
-            newPlayers.push({ code: loginUser.code });
+                const newPlayers = players.map(p => ({ code: p.code }));
+                newPlayers.push({ code: loginUser.code });
 
-            // ★ 3人揃った場合の処理分岐を追加
-            if (newPlayers.length === 3) {
-                // --- 3人目の場合：Boardアプリにレコード作成 → Lobby更新 ---
-                
-                // ★追加: デバッグ用に送信データをコンソールに出力
-                console.log("送信するGameID: ", gameId);
-                
-                // ① Lobbyに3人目のプレイヤーを先に保存する (ルックアップで3人とも引っ張るため)
-                const lobbyUpdatePlayersParams = {
+                const updateParams = {
                     app: kintone.app.getId(),
                     id: kintone.app.record.getId(),
                     record: {
@@ -85,21 +69,98 @@
                     }
                 };
 
-                kintone.api(kintone.api.url('/k/v1/record.json', true), 'PUT', lobbyUpdatePlayersParams).then(function() {
-                    // ② BoardにPOST（新規作成）
-                    // ※Lobbyに3人保存された後なので、ルックアップで3人分コピーされます
-                    const boardPostParams = {
-                        app: BOARD_APP_ID,
+                kintone.api(kintone.api.url('/k/v1/record.json', true), 'PUT', updateParams).then(function() {
+                    alert('ゲームに参加しました！現在の参加人数: ' + newPlayers.length + ' 人');
+                    location.reload();
+                }).catch(function(err) {
+                    console.error(err);
+                    alert('参加処理に失敗しました。');
+                    joinButton.innerText = '🎮 このゲームに参加する';
+                    joinButton.disabled = false;
+                });
+            });
+
+            btnContainer.appendChild(joinButton);
+        }
+
+        // 2. 【退出する】ボタンの表示条件 (参加している時のみ)
+        if (isAlreadyJoined) {
+            const leaveButton = document.createElement('button');
+            leaveButton.innerText = '🚪 退出する';
+            leaveButton.style.padding = '10px 20px';
+            leaveButton.style.backgroundColor = '#e74c3c';
+            leaveButton.style.color = '#fff';
+            leaveButton.style.border = 'none';
+            leaveButton.style.borderRadius = '5px';
+            leaveButton.style.fontWeight = 'bold';
+            leaveButton.style.cursor = 'pointer';
+            leaveButton.style.marginRight = '10px';
+
+            leaveButton.addEventListener('click', function() {
+                if (confirm('ロビーから退出しますか？')) {
+                    leaveButton.innerText = '退出処理中...';
+                    leaveButton.disabled = true;
+
+                    const newPlayers = players.filter(p => p.code !== loginUser.code).map(p => ({ code: p.code }));
+
+                    const updateParams = {
+                        app: kintone.app.getId(),
+                        id: kintone.app.record.getId(),
                         record: {
-                            GameID: { value: gameId },
-                            Turn_Index: { value: 0 }
+                            Players: { value: newPlayers }
                         }
                     };
-                    return kintone.api(kintone.api.url('/k/v1/record.json', true), 'POST', boardPostParams);
-                }).then(function(boardResp) {
+
+                    kintone.api(kintone.api.url('/k/v1/record.json', true), 'PUT', updateParams).then(function() {
+                        alert('ロビーから退出しました。');
+                        location.reload();
+                    }).catch(function(err) {
+                        console.error(err);
+                        alert('退出処理に失敗しました。');
+                        leaveButton.innerText = '🚪 退出する';
+                        leaveButton.disabled = false;
+                    });
+                }
+            });
+
+            btnContainer.appendChild(leaveButton);
+        }
+
+        // 3. 【ゲームを開始する】ボタン (2人以上、かつ自分が参加しているときに表示)
+        // 部屋の作成者、あるいは最初に入った人(Players[0])をホストとみなして押せるようにする
+        const isHost = players.length > 0 && players[0].code === loginUser.code;
+        if (isAlreadyJoined && players.length >= 2 && isHost) {
+            const startButton = document.createElement('button');
+            startButton.innerText = '🚀 ゲームを開始する (参加者: ' + players.length + '人)';
+            startButton.style.padding = '10px 20px';
+            startButton.style.backgroundColor = '#2ecc71';
+            startButton.style.color = '#fff';
+            startButton.style.border = 'none';
+            startButton.style.borderRadius = '5px';
+            startButton.style.fontWeight = 'bold';
+            startButton.style.cursor = 'pointer';
+
+            startButton.addEventListener('click', function() {
+                startButton.innerText = 'ゲーム起動中...';
+                startButton.disabled = true;
+
+                const currentPlayersFormatted = players.map(p => ({ code: p.code }));
+
+                // ① 盤面(Board)アプリ側に直接「最新のプレイヤーリスト」を送ってレコードを作成する！
+                // これにより、ルックアップの自動同期タイムラグによる「4人目が同期漏れで手札0枚になる不具合」を100%防止します。
+                const boardPostParams = {
+                    app: BOARD_APP_ID,
+                    record: {
+                        GameID: { value: gameId },
+                        Turn_Index: { value: 0 },
+                        Players: { value: currentPlayersFormatted } // 参加者リストをダイレクト転送
+                    }
+                };
+
+                kintone.api(kintone.api.url('/k/v1/record.json', true), 'POST', boardPostParams).then(function(boardResp) {
                     const boardRecordId = boardResp.id;
-                    
-                    // ③ Lobbyを「プレイ中」に更新し、作成したBoardレコード番号を記録
+
+                    // ② ロビーを「Playing（プレイ中）」にし、BoardのレコードIDを紐付ける
                     const lobbyUpdateStatusParams = {
                         app: kintone.app.getId(),
                         id: kintone.app.record.getId(),
@@ -110,42 +171,19 @@
                     };
                     return kintone.api(kintone.api.url('/k/v1/record.json', true), 'PUT', lobbyUpdateStatusParams);
                 }).then(function() {
-                    alert('3人揃いました！ゲーム盤面を作成し、開始します！');
+                    alert('🎉 ゲームを開始します！盤面を開きます。');
                     location.reload();
                 }).catch(function(error) {
                     console.error(error);
                     alert('ゲーム開始処理に失敗しました。詳細: ' + error.message);
-                    joinButton.innerText = '🎮 このゲームに参加する';
-                    joinButton.disabled = false;
+                    startButton.innerText = '🚀 ゲームを開始する';
+                    startButton.disabled = false;
                 });
+            });
 
-            } else {
-                // --- 1〜2人目の場合：Lobbyに自分を追加するだけ ---
-                const updateParams = {
-                    app: kintone.app.getId(),
-                    id: kintone.app.record.getId(),
-                    record: {
-                        Players: {
-                            value: newPlayers
-                        }
-                    }
-                };
-
-                // APIを叩いて自分を追加
-                kintone.api(kintone.api.url('/k/v1/record.json', true), 'PUT', updateParams, function(resp) {
-                    // 成功したら画面をリロードして最新状態を反映
-                    alert('ゲームに参加しました！あと ' + (3 - newPlayers.length) + ' 人待っています...');
-                    location.reload();
-                }, function(error) {
-                    console.error(error);
-                    alert('参加処理に失敗しました。コンソールを確認してください。');
-                    joinButton.innerText = '🎮 このゲームに参加する';
-                    joinButton.disabled = false;
-                });
-            }
-        });
+            btnContainer.appendChild(startButton);
+        }
 
         return event;
     });
-
 })();
